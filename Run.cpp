@@ -23,14 +23,14 @@ struct in_data //  структура входных данных о вещес�
 	double ion_pot[];
 };
 
-void main()
+int main()
 {
 	in_data data_he;
 
 	data_he.charge=0;
 	data_he.charge_step=el;
 	data_he.number_of_charge_states = 3;
-	data_he.ion_l= {0,0};
+	data_he.ion_l = {0,0};
 	data_he.ion_num_of_el={2,1};
 	data_he.ion_pot={24.47,54.4};
 
@@ -40,7 +40,7 @@ void main()
 	z0=data_he.charge/data_he.charge_step;
 	z1=z0+data_he.number_of_charge_states-1;
 
-	double A [], B [], C [];
+	double A [z1], B [z1], C [z1];
 
 	for (int i=z0;i<=z1;i++) // табулирование коэффициентов для расчета частоты ионизации
 		{
@@ -49,7 +49,7 @@ void main()
 			A[i]=w_a*(k(data_he.ion_pot[i])^2)*factorial(2*data_he.ion_l[i]-1)*B[i]^(1-2*n(i,k(data_he.ion_pot[i])))*C[i]^2;
 		};
 
-	Particle atom[kol][kol]; // создание мишини
+	atom = new Particle[kol][kol]; // создание мишини
 
 	for (int i=0;i<=kol;i++) // инициализация мишени с начальным зарядом из данных структуры
 		for (int j=0;j<=kol;j++)
@@ -77,11 +77,11 @@ int factorial (int n)
 }
 double C_res(int l, double n)
 {
-	return 2^(2*n-2)/(n*gamma(n+l+1)*gamma(n-l));
+	return pow(2,(2*n-2))/(n*gamma(n+l+1)*gamma(n-l));
 }
 double B_res(double I)
 {
-	return (k(I)^3*E_a)^(-1);
+	return pow((pow(k(I),3)*E_a),-1);
 }
 double n(int z, double k)
 {

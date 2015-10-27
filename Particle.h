@@ -1,3 +1,6 @@
+#ifndef PARTICLE_H
+#define PARTICLE_H
+
 class Particle
 
 {
@@ -13,3 +16,5 @@ class Particle
 		int z_i, j, z1;
 		double n, charge;
 };
+
+#endif

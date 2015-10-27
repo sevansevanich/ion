@@ -1,8 +1,8 @@
 #include "Particle.h";
 #include "math.h";
 #include <iostream>
-#include <random>
 #include <ctime>
+#include <cstdlib>
 
 const double el=1.60217657*pow(10,-19);
 
@@ -15,23 +15,23 @@ Particle::Particle (double ch, int z_1) // конструктор использ
 
 void Particle::W_cal(int z1, int i, double A, double B, double E) //вычисление частоты ионизации для объекта
 {
-	W[i]=A*E^(1-2*n)*B*exp(-2/(3*B*E));
+	W[i]=A*pow(E,(1-2*n))*B*exp(-2/(3*B*E));
 }
 
-double Particle::f(double W, double N, int i)
+double Particle::f(double w, double n, int i)
 {
 	double value;
 	if (i<=z_i)
 		{
-			value=-W*N;
+			value=-w*n;
 		}
 	else
 		{
-			value=W[i-1]*N[i-1]-W*N;
+			value=W[i-1]*N[i-1]-w*n;
 		}
 	if (i==z1-1)
 		{
-			value=W*N;
+			value=w*n;
 		}
 	return value;
 }
@@ -64,12 +64,11 @@ int Particle::P() // вычисление вероятности ионизац�
 
 	double p;
 	double sum1,sum2;
-	int j_vrem;
-
-	j_vrem=j;
-
 	while (j<z1)
 	{
+		srand(time(0));
+		p=rand()/double( RAND_MAX );
+
 		for (int i=z_i;i<=j;i++)
 			{
 				sum2+=N[i];
