@@ -1,10 +1,16 @@
-#include "Particle.h";
-#include "math.h";
+#include "Particle.h";=
 #include <iostream>
 #include <ctime>
 #include <cstdlib>
 
-const double el=1.60217657*pow(10,-19);
+Particle::Particle()
+{
+	z_i=0;
+	j=0;
+	z1=0;
+	n=0;
+	charge=0;
+}
 
 Particle::Particle (double ch, int z_1) // конструктор используемый для инициализации объекта (частицы) при создании мишине, с занесением только начального заряда
 {
