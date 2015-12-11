@@ -90,7 +90,7 @@ void Particle::N_cal_dif() //see when ionizate from z_i=0 to k_max!!!!
 				}
 				else
 				{
-					for (int h = 1;h <= k - (z_i + 1);h++) //sum for eq.(7), where P is the function in sum. h [1;k_max-i] and k!=k_max!=z1
+					for (int h = 1;h <= k - z_i;h++) //sum for eq.(7), where P is the function in sum. h [1;k_max-i] and k!=k_max!=z1
 					{
 						p += P(k, h, z_i);
 					};
