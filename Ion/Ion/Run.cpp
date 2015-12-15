@@ -12,6 +12,8 @@ double E_I(double);
 double E_norm(double, double);
 double T_norm(double);
 
+const double omega = 2 * M_PI*c / (0.8*pow(10, -6)); //circular frequency of laser beam 
+
 //number of charge states be one upper then atomic state/charge
 
 struct
@@ -82,10 +84,27 @@ struct data_in
 	double charge;
 	double charge_step;
 	int number_of_charge_states;
-	int *ion_l = new int[25];
-	int *ion_n = new int[25];
-	int *ion_num_of_el = new int[25];
-	double ion_pot[];
+	int *ion_l = new int[50];
+	int *ion_n = new int[50];
+	double *ion_pot = new double[50];
+
+	//function for initialization of struct 
+	void initial_pot(int i, double value)
+	{
+		ion_pot[i] = value;
+	}
+	void initial_l(int i, double value)
+	{
+		ion_l[i] = value;
+	}
+	void initial_n(int i, double value)
+	{
+		ion_n[i] = value;
+	}
+	void clear()
+	{
+		delete[] ion_l, ion_pot, ion_n;
+	}
 };
 
 using namespace std;
@@ -94,18 +113,39 @@ int main()
 {
 	data_in data;
 
+	data.number_of_charge_states = data_c.number_of_charge_states;
+	data.charge_step = data_c.charge_step;
+	data.charge = data_c.charge;
+	for (int i = 0;i < data_c.number_of_charge_states;i++)
+	{
+		data.initial_pot(i, data_c.ion_pot[i]);
+		data.initial_l(i, data_c.ion_l[i]);
+		//data.initial_n(i, data_c.ion_n[i]);
+	}
+
 	int z0 = 0, z1 = 0;
 
-	z0 = data_c.charge / data_c.charge_step; // 
-	z1 = z0 + data_c.number_of_charge_states - 1; //
+	z0 = data.charge / data.charge_step; // 
+	z1 = z0 + data.number_of_charge_states - 1; //
 
 	double *A = new double[z1];
 	double *B = new double[z1];
 	double *C = new double[z1];
 
-	//double W[6] = {};
+	double fil = 0;
+	Particle atom[kol][kol]; // target
+
+	for (int i = 0;i < kol;i++) //target initialization for first ionization, n for the first electron
+		for (int j = 0;j < kol;j++)
+		{
+			atom[i][j].charge = data.charge;
+			atom[i][j].z1 = z1;
+			atom[i][j].dt = 0.2668*pow(10, -14);
+		};
+
+	double W[26] = {};
 	int choose = 0, choose2 = 0;
-	double fil = 0, value = 0, a0 = 0;
+	double fil0 = 0, value = 0, a0 = 0;
 
 	cout << "Choose field's data:" << endl;
 	cout << "1 - E" << endl;
@@ -121,90 +161,103 @@ int main()
 	switch (choose)
 	{
 	case 1:
-		fil = value;
+		fil0 = value;
 		break;
 	case 2:
 		if (choose2 == 1) {
 			a0 = 8.6*pow(10, -10)*0.8*sqrt(value);// / sqrt(2); //intensy in W/cm^2 for circular polirazat
-			fil = E(a0); //v/m
+			fil0 = E(a0); //v/m
 		}
 		else
 		{
 			a0 = 8.6*pow(10, -10)*0.8*sqrt(value) / sqrt(2); //intensy in W/cm^2 for circular polirazat
-			fil = E(a0); //v/m
+			fil0 = E(a0); //v/m
 		}
 		break;
 	case 3:
-		fil = E(value);
+		fil0 = E(value);
 		break;
 	}
 
-	for (int i = z0 + 1;i <= z1;i++)// calculation coefficients
-	{
-		int t = i - 1;
-		C[t] = C_res(data_c.ion_l[t], n(i, k(data_c.ion_pot[t])));
-		B[t] = B_res(data_c.ion_pot[t]);
-		A[t] = w_a*pow(k(data_c.ion_pot[t]), 2)*(2 * data_c.ion_l[t] + 1)*pow(B[t] * 2, (2 * n(i, k(data_c.ion_pot[t])) - 1))*C[t] / 4; //we devide by 2 or 4??? with 2 close to article's value
-		//W[t] = A[t] * pow(E(2), -(2 * n(i, k(data_c.ion_pot[t])) - 1))*exp(-2 * B[t] / (3 * E(2)));
-	};
-
-	ofstream fout;
-	fout.open("Ion_out_ion.txt");
-
-	double a = 0.1, W_E_a[30] = {};
-	for (int i = 0; i < 30; i++)
-	{
-		W_E_a[i] = A[5] * pow(E(a), -(2 * n(6, k(data_c.ion_pot[5])) - 1))*exp(-2 * B[5] / (3 * E(a)));
-		fout << W_E_a[i] << " " << a << " " << 1 - exp(-W_E_a[i] * 0.2668*pow(10, -14)) << endl;
-		a += 0.1;
-	}
-	fout.close();
-	
-	Particle atom[kol][kol]; // target
-
-	for (int i = 0;i < kol;i++) //target initialization for first ionization, n for the first electron
-		for (int j = 0;j < kol;j++)
-		{
-			atom[i][j].charge = data_c.charge;
-			atom[i][j].z1 = z1;
-			atom[i][j].n = n(1, k(data_c.ion_pot[0]));
-			atom[i][j].dt = 0.2668*pow(10, -14);
-		};
-	
-	for (int i = 0;i < kol;i++)
-		for (int j = 0;j < kol;j++)
-		{
-			if (atom[i][j].z_i<z1)
-			{
-				for (int q = atom[i][j].z_i; q < z1;q++) // calculate ionization rate for z_i<i<z1. DON'T FORGET give current n
-				{
-					atom[i][j].W_cal(A[q], B[q], fil, n(q+1, k(data_c.ion_pot[q]))); // for direct current; give function n z, which equal q+1, but this equation does't >z1!!!!!!
-					atom[i][j].W_cal_AC(A[q], B[q], fil, n(q + 1, k(data_c.ion_pot[q]))); //for alternating current 
-				}
-				atom[i][j].P();
-				if (atom[i][j].j != 0)
-				{
-					atom[i][j].charge += atom[i][j].j*data_c.charge_step; //Atom's charge will change if degree ionization doesn't equal zero (j!=0)
-					atom[i][j].j = 0;
-				};
-			}
-		};
+	//double r[21] = {};
+	//for (int q = 0;q <= 20;q++)
+	//	r[q] = abs(cos(-omega*q*pow(10, -15)));
 
 	double ratio[kol][kol] = {};
+
+	for (int q = 1;q <=20;q++)
+	{
+		//fil = fil0*abs(sin(-omega*q*pow(10,-15))); // plane wave
+		fil = fil0;//*((1 / sqrt(2 * M_PI))*exp(-pow(q - 10, 2) / 2) + 0.6); //gaus
+
+		double n_i[26] = {}, keld[26] = {};
+		for (int i = 0; i < 26;i++)
+		{
+			n_i[i] = n(i + 1, k(data.ion_pot[i]));
+			keld[i] = sqrt(2 * data.ion_pot[i] * m_e*1.6*pow(10, -19))*(2 * M_PI*c / (0.8*pow(10, -6))) / (el*fil); // ionization potential in Joule
+		}
+
+		for (int i = z0 + 1;i <= z1;i++)// calculation coefficients
+		{
+			int t = i - 1;
+			C[t] = C_res(data.ion_l[t], n(i, k(data.ion_pot[t])));
+			B[t] = B_res(data.ion_pot[t]);
+			A[t] = w_a*pow(k(data.ion_pot[t]), 2)*(2 * data.ion_l[t] + 1)*pow(2 * B[t], (2 * n(i, k(data.ion_pot[t])) - 1))*C[t]/2; //we devide by 2 because one 2 in degree 2*B^(2n-1)
+			W[t] = A[t] * pow(fil, -(2 * n(i, k(data.ion_pot[t])) - 1))*exp(-2 * B[t] / (3 * fil));
+		};
+
+		/*ofstream fout;
+		fout.open("Ion_out_ion.txt");
+
+		double a = 0.1, W_E_a[30] = {};
+		for (int i = 0; i < 30; i++)
+		{
+			W_E_a[i] = A[5] * pow(E(a), -(2 * n(6, k(data.ion_pot[5])) - 1))*exp(-2 * B[5] / (3 * E(a)));
+			fout << W_E_a[i] << " " << a << " " << 1 - exp(-W_E_a[i] * 0.2668*pow(10, -14)) << endl;
+			a += 0.1;
+		}
+		fout.close();*/
+
+		for (int i = 0;i < kol;i++)
+			for (int j = 0;j < kol;j++)
+			{
+				if (atom[i][j].z_i < z1)
+				{
+					//atom[i][j].z_i = 1;
+					for (int q = 0; q < z1;q++) // calculate ionization rate for z_i<i<z1. DON'T FORGET give current n
+					{
+						atom[i][j].W_cal(A[q], B[q], fil, n(q + 1, k(data.ion_pot[q])), keld[q]); // for direct current; give function n z, which equal q+1, but this equation does't >z1!!!!!!
+						atom[i][j].W_cal_AC(A[q], B[q], fil, n(q + 1, k(data.ion_pot[q])), keld[q]); //for alternating current 
+					}
+					atom[i][j].P();
+
+					if (atom[i][j].j != 0)
+					{
+						atom[i][j].charge += atom[i][j].j*data.charge_step; //Atom's charge will change if degree ionization doesn't equal zero (j!=0)
+						atom[i][j].j = 0;
+					};
+					atom[i][j].clear();
+					ratio[i][j] = atom[i][j].charge / el;
+					//if (ratio[i][j] == 0);
+				}
+			};
+	}
 
 	for (int i = 0; i < kol; i++)
 		for (int j = 0; j < kol; j++)
 			ratio[i][j] = atom[i][j].charge / el;
 
+
 	delete[] A, B, C; //clearing memory from dinamic massiv
 }
 
 
-double C_res(int l, double n)
+double C_res(int l_in, double n)
 {
 	if (n < 1) { n = 1; }; // not sure 
-	return pow(2 * M_PI*n, (-1))*pow((2 * M_E / n), 2 * n); // for l*<<n* e - what is it? electron's mass or exp?
-	//return pow(2, 2 * n) / (n*tgamma(n + l + 1)*tgamma(n - l)); //universal
+	double l = n - 1;
+	//return pow(2 * M_PI*n, (-1))*pow((2 * M_E / n), 2 * n); // for l*<<n* 
+	return pow(2, 2 * n) / (n*tgamma(n + l + 1)*tgamma(n - l)); //universal
 	//return pow(2 * M_PI*n, (-1))*(;//universal without gamma function
 }
 double B_res(double I)
@@ -239,21 +292,3 @@ double T_norm(double lym)
 {
 	return lym / 2 * M_PI*c;
 }
-
-//function for initialization of struct (next ficha)
-/*
-in_data data_he;
-void setupStr_l(int value[], int n)
-{
-for (int i=0; i<n;i++)
-data_he.ion_l[i]=value[i];
-}
-void setupStr_num(int value[], int n)
-{
-for (int i=0; i<n;i++)
-data_he.ion_num_of_el[i]=value[i];
-}
-void setupStr_pot(double value[], int n)
-{
-for (int i=0; i<n;i++)
-data_he.ion_pot[i]=value[i];*/

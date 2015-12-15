@@ -27,17 +27,18 @@ protected:
 	double f(double, double, int);
 
 	void N_cal_dif();
-	double P(int, int, int);
-	double P_max(int, int, int);
+	double P(int, int);
+	double P_max(int, int);
 public:
 	int z_i, j, z1;
-	double n, charge, dt;
+	double charge, dt;
 	Particle();
 	Particle(double, int, int);
 
-	void W_cal(double, double, double, double);
-	void W_cal_AC(double, double, double, double);
+	void W_cal(double, double, double, double, double);
+	void W_cal_AC(double, double, double, double, double);
 	void P();
+	void clear();
 };
 
 #endif
