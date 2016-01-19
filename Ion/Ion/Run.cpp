@@ -16,6 +16,7 @@ const double omega = 2 * M_PI*c / (0.8*pow(10, -6)); //circular frequency of las
 
 //number of charge states be one upper then atomic state/charge
 
+#pragma region input
 struct
 {
 	double charge = 0;
@@ -107,20 +108,22 @@ struct data_in
 	}
 };
 
+#pragma end_region
+
 using namespace std;
 
 int main()
 {
 	data_in data;
 
-	data.number_of_charge_states = data_c.number_of_charge_states;
-	data.charge_step = data_c.charge_step;
-	data.charge = data_c.charge;
-	for (int i = 0;i < data_c.number_of_charge_states;i++)
+	data.number_of_charge_states = data_fe.number_of_charge_states;
+	data.charge_step = data_fe.charge_step;
+	data.charge = data_fe.charge;
+	for (int i = 0;i < data_fe.number_of_charge_states;i++)
 	{
-		data.initial_pot(i, data_c.ion_pot[i]);
-		data.initial_l(i, data_c.ion_l[i]);
-		//data.initial_n(i, data_c.ion_n[i]);
+		data.initial_pot(i, data_fe.ion_pot[i]);
+		data.initial_l(i, data_fe.ion_l[i]);
+		//data.initial_n(i, data_fe.ion_n[i]);
 	}
 
 	int z0 = 0, z1 = 0;
@@ -140,7 +143,7 @@ int main()
 		{
 			atom[i][j].charge = data.charge;
 			atom[i][j].z1 = z1;
-			atom[i][j].dt = 0.2668*pow(10, -14);
+			atom[i][j].dt = 0.1*pow(10, -15);
 		};
 
 	double W[26] = {};
@@ -156,7 +159,7 @@ int main()
 	cin >> choose2;
 	cout << "Write value: ";
 	cin >> value;
-	value = 3*pow(10, 15);
+	value = pow(10, 22);
 
 	switch (choose)
 	{
@@ -185,26 +188,42 @@ int main()
 
 	double ratio[kol][kol] = {};
 
-	for (int q = 1;q <=20;q++)
+	//ofstream fout;
+	//fout.open("Ion_out_ion_E.txt");
+	//double tau = 0.0;
+	//while(tau<=40.0) //tau - time interval from the start of counting
+	//{
+	//	fil = fil0*exp(- pow(tau - 20, 2) / (2 * 40))*abs(sin(tau));
+	//	fout << fil << " " << tau << " " << endl;
+	//	tau += 0.01;
+	//}
+	//fout.close();
+
+	double n_i[26] = {}, keld[26] = {};
+	for (int i = 0; i < 26;i++)
 	{
-		//fil = fil0*abs(sin(-omega*q*pow(10,-15))); // plane wave
-		fil = fil0;//*((1 / sqrt(2 * M_PI))*exp(-pow(q - 10, 2) / 2) + 0.6); //gaus
+		n_i[i] = n(i + 1, k(data.ion_pot[i]));
+		keld[i] = sqrt(2 * data.ion_pot[i] * m_e*1.6*pow(10, -19))*(2 * M_PI*c / (0.8*pow(10, -6))) / (el*fil); // ionization potential in Joule
+	}
 
-		double n_i[26] = {}, keld[26] = {};
-		for (int i = 0; i < 26;i++)
-		{
-			n_i[i] = n(i + 1, k(data.ion_pot[i]));
-			keld[i] = sqrt(2 * data.ion_pot[i] * m_e*1.6*pow(10, -19))*(2 * M_PI*c / (0.8*pow(10, -6))) / (el*fil); // ionization potential in Joule
-		}
+	for (int i = z0 + 1;i <= z1;i++)// calculation coefficients
+	{
+		int t = i - 1;
+		C[t] = C_res(data.ion_l[t], n(i, k(data.ion_pot[t])));
+		B[t] = B_res(data.ion_pot[t]);
+		A[t] = w_a*pow(k(data.ion_pot[t]), 2)*(2 * data.ion_l[t] + 1)*pow(2 * B[t], (2 * n(i, k(data.ion_pot[t])) - 1))*C[t] / 2; //we devide by 2 because one 2 in degree 2*B^(2n-1)
+	};
 
-		for (int i = z0 + 1;i <= z1;i++)// calculation coefficients
-		{
-			int t = i - 1;
-			C[t] = C_res(data.ion_l[t], n(i, k(data.ion_pot[t])));
-			B[t] = B_res(data.ion_pot[t]);
-			A[t] = w_a*pow(k(data.ion_pot[t]), 2)*(2 * data.ion_l[t] + 1)*pow(2 * B[t], (2 * n(i, k(data.ion_pot[t])) - 1))*C[t]/2; //we devide by 2 because one 2 in degree 2*B^(2n-1)
-			W[t] = A[t] * pow(fil, -(2 * n(i, k(data.ion_pot[t])) - 1))*exp(-2 * B[t] / (3 * fil));
-		};
+	ofstream fout;
+	fout.open("Ion_out_ion_ratio.txt");
+	int sum19=0, sum20=0, sum21 = 0, sum22 = 0, sum23 = 0, sum24 = 0, sum25 = 0;
+	double tau = 0.1; //tau - time interval from the start of counting
+
+	while(tau<= duration_imp) 
+	{
+		//fil = fil0*abs(sin(-omega*tsu*pow(10,-15))); // plane wave
+		//fil = fil0*exp(-pow(tsu - 20, 2) / 40)); //gaus
+		fil = fil0*exp(-pow(tau - 20, 2) / (2 * duration_imp))*abs(cos(omega*tau));
 
 		/*ofstream fout;
 		fout.open("Ion_out_ion.txt");
@@ -223,12 +242,11 @@ int main()
 			{
 				if (atom[i][j].z_i < z1)
 				{
-					//atom[i][j].z_i = 1;
 					for (int q = 0; q < z1;q++) // calculate ionization rate for z_i<i<z1. DON'T FORGET give current n
 					{
 						atom[i][j].W_cal(A[q], B[q], fil, n(q + 1, k(data.ion_pot[q])), keld[q]); // for direct current; give function n z, which equal q+1, but this equation does't >z1!!!!!!
 						atom[i][j].W_cal_AC(A[q], B[q], fil, n(q + 1, k(data.ion_pot[q])), keld[q]); //for alternating current 
-					}
+					}					
 					atom[i][j].P();
 
 					if (atom[i][j].j != 0)
@@ -238,15 +256,40 @@ int main()
 					};
 					atom[i][j].clear();
 					ratio[i][j] = atom[i][j].charge / el;
-					//if (ratio[i][j] == 0);
+					if ((ratio[i][j] <= 19.1) && (ratio[i][j] > 18.9)) { sum19++; };
+					if ((ratio[i][j] <= 20.1) && (ratio[i][j] > 19.9)) { sum20++; };
+					if ((ratio[i][j] <= 21.1) && (ratio[i][j] > 20.9)) { sum21++; };
+					if ((ratio[i][j] <= 22.1) && (ratio[i][j] > 21.9)) { sum22++; };
+					if ((ratio[i][j] <= 23.1) && (ratio[i][j] > 22.9)) { sum23++; };
+					if ((ratio[i][j] <= 24.1) && (ratio[i][j] > 23.9)) { sum24++; };
+					if ((ratio[i][j] <= 25.1) && (ratio[i][j] > 24.9)) { sum25++; };
 				}
+				atom[i][j].dt += 0.1*pow(10, -15); //increase time interval in code (fs)
 			};
+		fout<< sum19 << " "<< sum20 <<" " << sum21 << " " << sum22 << " " << sum23 << " " << sum24 << " " << sum25 << " " << tau << " " << endl;
+		tau += 0.1; //increase time interval in loop (step)
+		sum19 = 0; sum20 = 0; sum21 = 0; sum22 = 0; sum23 = 0; sum24 = 0; sum25 = 0;
 	}
 
-	for (int i = 0; i < kol; i++)
-		for (int j = 0; j < kol; j++)
-			ratio[i][j] = atom[i][j].charge / el;
+	fout.close();
 
+	/*ofstream fout;
+	fout.open("Ion_out_ion_ratio.txt");
+	int sum21 = 0, sum22 = 0, sum23 = 0, sum24 = 0, sum25 = 0;
+	for (int i = 0; i < kol; i++)
+	{
+		for (int j = 0; j < kol; j++)
+		{
+			ratio[i][j] = atom[i][j].charge / el;
+			if ((ratio[i][j] <= 21.1) && (ratio[i][j] > 20.9)) { sum21++; };
+			if ((ratio[i][j] <= 22.1) && (ratio[i][j] > 21.9)) { sum22++; };
+			if ((ratio[i][j] <= 23.1) && (ratio[i][j] > 22.9)) { sum23++; };
+			if ((ratio[i][j] <= 24.1) && (ratio[i][j] > 23.9)) { sum24++; };
+			if ((ratio[i][j] <= 25.1) && (ratio[i][j] > 24.9)) { sum25++; };
+		}
+		
+	}
+	fout.close();*/
 
 	delete[] A, B, C; //clearing memory from dinamic massiv
 }

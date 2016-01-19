@@ -26,12 +26,12 @@ Particle::Particle(double ch, int z_1, int n_p)// initialization particle from i
 
 void Particle::W_cal(double A, double B, double E, double n, double keld)//ionization rate ADK for DC
 {
-	W.insert(W.end(), A * pow(E, -(2 * n - 1))*exp((-2 * B / (3 * E))*(1 - 0.1*keld*keld))); // for vector massive
+	W.insert(W.end(), A * pow(E, -(2 * n - 1))*exp((-2 * B / (3 * E))));//*(1 - 0.1*keld*keld))); // for vector massive
 }
 
 void Particle::W_cal_AC(double A, double B, double E, double n, double keld)//ionization rate ADK for AC
 {
-	W_AC.insert(W_AC.end(), sqrt((3*E)/(M_PI*B))*A*pow(E, -(2 * n - 1))*exp((-2 * B / (3 * E))*(1 - 0.1*keld*keld)));
+	W_AC.insert(W_AC.end(), sqrt((3 * E) / (M_PI*B))*A*pow(E, -(2 * n - 1))*exp((-2 * B / (3 * E))));//*(1 - 0.1*keld*keld)));
 }
 
 

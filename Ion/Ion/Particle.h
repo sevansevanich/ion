@@ -7,7 +7,8 @@
 #include <iostream>
 
 const double el = 1.60217657*pow(10, -19);
-const int kol = 100; // define target's size
+const int kol = 50; // define target's size
+const double duration_imp = 40.0; // impulse duration
 const double I_h = 13.598434005136; //ionization energy eV
 const double E_a = 0.514224*pow(10, 12); // atomic field TV/m
 const double w_a = 4.134*pow(10, 16); //atomic frequency
