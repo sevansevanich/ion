@@ -186,25 +186,7 @@ int main()
 	//for (int q = 0;q <= 20;q++)
 	//	r[q] = abs(cos(-omega*q*pow(10, -15)));
 
-	double ratio[kol][kol] = {};
-
-	//ofstream fout;
-	//fout.open("Ion_out_ion_E.txt");
-	//double tau = 0.0;
-	//while(tau<=40.0) //tau - time interval from the start of counting
-	//{
-	//	fil = fil0*exp(- pow(tau - 20, 2) / (2 * 40))*abs(sin(tau));
-	//	fout << fil << " " << tau << " " << endl;
-	//	tau += 0.01;
-	//}
-	//fout.close();
-
 	double n_i[26] = {}, keld[26] = {};
-	for (int i = 0; i < 26;i++)
-	{
-		n_i[i] = n(i + 1, k(data.ion_pot[i]));
-		keld[i] = sqrt(2 * data.ion_pot[i] * m_e*1.6*pow(10, -19))*(2 * M_PI*c / (0.8*pow(10, -6))) / (el*fil); // ionization potential in Joule
-	}
 
 	for (int i = z0 + 1;i <= z1;i++)// calculation coefficients
 	{
@@ -223,10 +205,17 @@ int main()
 	{
 		//fil = fil0*abs(sin(-omega*tsu*pow(10,-15))); // plane wave
 		//fil = fil0*exp(-pow(tsu - 20, 2) / 40)); //gaus
-		fil = fil0*exp(-pow(tau - 20, 2) / (2 * duration_imp))*abs(cos(omega*tau));
+		//fil = fil0*exp(-pow(tau - 20, 2) * 3.45 / (2 * duration_imp));
+		fil = fil0*exp(-pow(tau - 20, 2) * 3.45 / (2 * duration_imp))*abs(cos(omega*tau));
 
 		/*ofstream fout;
 		fout.open("Ion_out_ion.txt");
+
+		for (int i = 0; i < 26;i++)
+		{
+		n_i[i] = n(i + 1, k(data.ion_pot[i]));
+		keld[i] = sqrt(2 * data.ion_pot[i] * m_e*1.6*pow(10, -19))*(2 * M_PI*c / (0.8*pow(10, -6))) / (el*fil); // ionization potential in Joule
+		}
 
 		double a = 0.1, W_E_a[30] = {};
 		for (int i = 0; i < 30; i++)
@@ -255,14 +244,24 @@ int main()
 						atom[i][j].j = 0;
 					};
 					atom[i][j].clear();
-					ratio[i][j] = atom[i][j].charge / el;
-					if ((ratio[i][j] <= 19.1) && (ratio[i][j] > 18.9)) { sum19++; };
-					if ((ratio[i][j] <= 20.1) && (ratio[i][j] > 19.9)) { sum20++; };
-					if ((ratio[i][j] <= 21.1) && (ratio[i][j] > 20.9)) { sum21++; };
-					if ((ratio[i][j] <= 22.1) && (ratio[i][j] > 21.9)) { sum22++; };
-					if ((ratio[i][j] <= 23.1) && (ratio[i][j] > 22.9)) { sum23++; };
-					if ((ratio[i][j] <= 24.1) && (ratio[i][j] > 23.9)) { sum24++; };
-					if ((ratio[i][j] <= 25.1) && (ratio[i][j] > 24.9)) { sum25++; };
+
+					switch (atom[i][j].z_i)
+					{
+						case 19: sum19++;
+							break;
+						case 20: sum20++;
+							break;
+						case 21: sum21++;
+							break;
+						case 22: sum22++;
+							break;
+						case 23: sum23++;
+							break;
+						case 24: sum24++;
+							break;
+						case 25: sum25++;
+							break;
+					}
 				}
 				atom[i][j].dt += 0.1*pow(10, -15); //increase time interval in code (fs)
 			};
@@ -335,3 +334,14 @@ double T_norm(double lym)
 {
 	return lym / 2 * M_PI*c;
 }
+
+//ofstream fout;
+//fout.open("Ion_out_ion_E.txt");
+//double tau = 0.0;
+//while(tau<=40.0) //tau - time interval from the start of counting
+//{
+//	fil = fil0*exp(- pow(tau - 20, 2) / (2 * 40))*abs(sin(tau));
+//	fout << fil << " " << tau << " " << endl;
+//	tau += 0.01;
+//}
+//fout.close();

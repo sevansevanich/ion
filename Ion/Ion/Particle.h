@@ -25,7 +25,6 @@ protected:
 	std::vector<double> W_AC;
 
 	void N_cal_ru();
-	double f(double, double, int);
 
 	void N_cal_dif();
 	double P(int, int);

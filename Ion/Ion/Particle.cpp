@@ -6,6 +6,14 @@
 std::mt19937 gen(time(0));
 std::uniform_real_distribution<> urd(0, 1);
 
+__inline double dxor128(void) //XorShift random generator. Generation on interval [0,1). Use from http://www001.upp.so-net.ne.jp/isaku/en/dxor513.c.html
+{
+	enum { a = 11, b = 8, c = 19 };
+	static uint32_t x = 123456789, y = 362436069, z = 521288629, w = 88675123;
+	uint32_t t = x^x << a; x = y; y = z; z = w;
+	return (w ^= w >> c^t^t >> b)*(1.0 / 4294967296.0);
+}
+
 Particle::Particle() //consruction by default
 {
 	z_i = 0;
@@ -34,41 +42,37 @@ void Particle::W_cal_AC(double A, double B, double E, double n, double keld)//io
 	W_AC.insert(W_AC.end(), sqrt((3 * E) / (M_PI*B))*A*pow(E, -(2 * n - 1))*exp((-2 * B / (3 * E))));//*(1 - 0.1*keld*keld)));
 }
 
-
-double Particle::f(double w, double n, int i)//support function
-{
-	double value;
-	if (i <= z_i)
-	{
-		value = -w*n;
-	}
-	else
-	{
-		value = W.at(i - 1) * N.at(i - 1) - w*n;
-	}
-	if (i == z1 - 1)
-	{
-		value = w*n;
-	}
-	return value;
-}
-
 void Particle::N_cal_ru() // method of Runge-Kutti 4 degree
 {
-	double k1, k2, k3, k4, h;
+	double k1=0, k2=0, k3=0, k4=0, h=0;
+	int n = 1000;
 
-	h = dt / (z1 - z_i);
-
-	N.insert(N.end(), 1);  //initial date t=0
-
-	for (int i = z_i;i<z1;i++)
+	h = dt / n;
+	
+	for (int j = 1; j <= z1-z_i;j++) //the initial state for DU
 	{
-		k1 = f(W.at(i), N.at(i), i);
-		k2 = f(W.at(i) + h / 2, N.at(i) + h / 2 * k1, i);
-		k3 = f(W.at(i) + h / 2, N.at(i) + h / 2 * k2, i);
-		k4 = f(W.at(i) + h, N.at(i) + h*k3, i);
+		if (j == 1) { N.insert(N.end(), 1); }
+		else { N.insert(N.end(), 0); }
+	}
 
-		N.insert(N.end(), N.at(i) + (h / 6)*(k1 + 2 * k2 + 2 * k3 + k4));
+	for (int k = 1; k <= n; k++) //calculate state population for different ionizations degree and to futere use in Monte-Carlo scheme
+	{
+		k1 = -W.at(z_i)*N[0];
+		k2 = -W.at(z_i)*(N[0] + h / 2 * k1);
+		k3 = -W.at(z_i)*(N[0] + h / 2 * k2);
+		k4 = -W.at(z_i)*(N[0] + h / 2 * k3);
+
+		N[0] = N[0] + (h / 6)*(k1 + 2 * k2 + 2 * k3 + k4); //calculation N for initial state of atom
+
+		for (int j = 1;j < z1 - z_i;j++) //calculate other N for z_max-i
+		{
+			k1 = W.at(z_i+j-1)*N[j-1] - W.at(z_i + j)*N[j];
+			k2 = W.at(z_i+j-1)*N[j-1] - W.at(z_i + j)*(N[j] + h / 2 * k1);
+			k3 = W.at(z_i+j-1)*N[j-1] - W.at(z_i + j)*(N[j] + h / 2 * k2);
+			k4 = W.at(z_i+j-1)*N[j-1] - W.at(z_i + j)*(N[j] + h / 2 * k3);
+
+			N[j] = N[j] + (h / 6)*(k1 + 2 * k2 + 2 * k3 + k4); 
+		}
 	}
 }
 
@@ -136,6 +140,11 @@ void Particle::P() // void because j - number of new electrons and degree of ion
 	//N_cal_ru();
 	N_cal_dif();
 
+	double control = 0; // for check the total number of all kinds of ions, that must to equal one
+
+	for (int i = 0; i < z1;i++)
+		control += N[i];
+
 	double sum1 = 0, sum2 = 0;
 	int k = -1, exit = 0; // exit - for exit out loop 
 	
@@ -145,7 +154,8 @@ void Particle::P() // void because j - number of new electrons and degree of ion
 		if (k > z1-z_i) { exit = 1; } //condition to exit, when k=z1
 		else
 		{
-			double u = urd(gen);
+			//double u = urd(gen);
+			double u = dxor128();
 			sum1 = sum2;
 			sum2 += N.at(k);
 			if ((u > sum1) && (u < sum2)) { j = k; z_i += j; exit = 1; };
