@@ -58,6 +58,7 @@ struct
 	int ion_n[7] = { 2,2,2,2,2,1,1 };
 	int ion_num_of_el[7] = { 3,2,1,2,1,2,1 };
 	double ion_pot[7] = { 14.53413,29.60125,47.4453,77.4735,97.89013,552.06731,667.04609 };
+	double density = 0.808;
 } data_n;
 
 struct
@@ -68,6 +69,7 @@ struct
 	int ion_l[26] = { 0,0,2,2,2,2,2,2,1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,0,0,0};
 	int ion_n[26] = { 4, 4, 3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,2,2,2,2,2,1,1};
 	double ion_pot[26] = { 7.9024678, 16.19920, 30.651, 54.91, 75.0, 98.985, 124.98, 151.060, 233.6, 262.10, 290.9, 330.8, 361.0, 392.2, 456.2, 489.312, 1262.7, 1357.8, 1460, 1575.6, 1687.0, 1798.4, 1950.4, 2045.759, 8828.1875, 9277.6814};
+	double density = 7.874;
 } data_fe;
 
 struct
@@ -88,6 +90,7 @@ struct data_in
 	int *ion_l = new int[50];
 	int *ion_n = new int[50];
 	double *ion_pot = new double[50];
+	double density;
 
 	//function for initialization of struct 
 	void initial_pot(int i, double value)
@@ -115,15 +118,16 @@ using namespace std;
 int main()
 {
 	data_in data;
+	ofstream fout;
 
-	data.number_of_charge_states = data_fe.number_of_charge_states;
-	data.charge_step = data_fe.charge_step;
-	data.charge = data_fe.charge;
-	for (int i = 0;i < data_fe.number_of_charge_states;i++)
+	data.number_of_charge_states = data_n.number_of_charge_states;
+	data.charge_step = data_n.charge_step;
+	data.density = data_n.density;
+	data.charge = data_n.charge;
+	for (int i = 0;i < data_n.number_of_charge_states;i++)
 	{
-		data.initial_pot(i, data_fe.ion_pot[i]);
-		data.initial_l(i, data_fe.ion_l[i]);
-		//data.initial_n(i, data_fe.ion_n[i]);
+		data.initial_pot(i, data_n.ion_pot[i]);
+		data.initial_l(i, data_n.ion_l[i]);
 	}
 
 	int z0 = 0, z1 = 0;
@@ -148,45 +152,7 @@ int main()
 
 	double W[26] = {};
 	int choose = 0, choose2 = 0;
-	double fil0 = 0, value = 0, a0 = 0;
-
-	cout << "Choose field's data:" << endl;
-	cout << "1 - E" << endl;
-	cout << "2 - I" << endl;
-	cout << "3 - a" << endl;
-	cin >> choose;
-	cout << "Choose polarization:" << endl << "1 - linear" << endl << "2 - circular" << endl;
-	cin >> choose2;
-	cout << "Write value: ";
-	cin >> value;
-	value = pow(10, 22);
-
-	switch (choose)
-	{
-	case 1:
-		fil0 = value;
-		break;
-	case 2:
-		if (choose2 == 1) {
-			a0 = 8.6*pow(10, -10)*0.8*sqrt(value);// / sqrt(2); //intensy in W/cm^2 for circular polirazat
-			fil0 = E(a0); //v/m
-		}
-		else
-		{
-			a0 = 8.6*pow(10, -10)*0.8*sqrt(value) / sqrt(2); //intensy in W/cm^2 for circular polirazat
-			fil0 = E(a0); //v/m
-		}
-		break;
-	case 3:
-		fil0 = E(value);
-		break;
-	}
-
-	//double r[21] = {};
-	//for (int q = 0;q <= 20;q++)
-	//	r[q] = abs(cos(-omega*q*pow(10, -15)));
-
-	double n_i[26] = {}, keld[26] = {};
+	double fil0 = 0, value = 0, a0 = 0, keld[26] = {};
 
 	for (int i = z0 + 1;i <= z1;i++)// calculation coefficients
 	{
@@ -196,57 +162,106 @@ int main()
 		A[t] = w_a*pow(k(data.ion_pot[t]), 2)*(2 * data.ion_l[t] + 1)*pow(2 * B[t], (2 * n(i, k(data.ion_pot[t])) - 1))*C[t] / 2; //we devide by 2 because one 2 in degree 2*B^(2n-1)
 	};
 
-	ofstream fout;
-	fout.open("Ion_out_ion_ratio.txt");
-	int sum19=0, sum20=0, sum21 = 0, sum22 = 0, sum23 = 0, sum24 = 0, sum25 = 0;
-	double tau = 0.1; //tau - time interval from the start of counting
+	cout << "Choose what are you want: " << endl << " - calculation of depedence (1);" << endl << " - start to simulation of interaction of a laser pulse with a target (2);" << endl;
+	cin >> choose; 
 
-	while(tau<= duration_imp) 
+	if (choose = 1)
 	{
-		//fil = fil0*abs(sin(-omega*tsu*pow(10,-15))); // plane wave
-		//fil = fil0*exp(-pow(tsu - 20, 2) / 40)); //gaus
-		//fil = fil0*exp(-pow(tau - 20, 2) * 3.45 / (2 * duration_imp));
-		fil = fil0*exp(-pow(tau - 20, 2) * 3.45 / (2 * duration_imp))*abs(cos(omega*tau));
+		cout << "Choose charge of atom: ";
+		cin >> choose2;
 
-		/*ofstream fout;
 		fout.open("Ion_out_ion.txt");
-
+		double n_i[26] = {};
+		
+		//Calculation of parameter Keldisha
 		for (int i = 0; i < 26;i++)
 		{
-		n_i[i] = n(i + 1, k(data.ion_pot[i]));
-		keld[i] = sqrt(2 * data.ion_pot[i] * m_e*1.6*pow(10, -19))*(2 * M_PI*c / (0.8*pow(10, -6))) / (el*fil); // ionization potential in Joule
+			n_i[i] = n(i + 1, k(data.ion_pot[i]));
+			keld[i] = sqrt(2 * data.ion_pot[i] * m_e*1.6*pow(10, -19))*(2 * M_PI*c / (0.8*pow(10, -6))) / (el*fil); // ionization potential in Joule
 		}
 
-		double a = 0.1, W_E_a[30] = {};
-		for (int i = 0; i < 30; i++)
+		//Calculation of dependence of the ionization of the  nirmalize amplitude electric field
+		double a = 0.001, W_E_a[100] = {};
+		for (int i = 0; i < 100; i++)
 		{
-			W_E_a[i] = A[5] * pow(E(a), -(2 * n(6, k(data.ion_pot[5])) - 1))*exp(-2 * B[5] / (3 * E(a)));
+			W_E_a[i] = A[choose2] * pow(E(a), -(2 * n(choose2, k(data.ion_pot[choose2])) - 1))*exp(-2 * B[choose2] / (3 * E(a)));
 			fout << W_E_a[i] << " " << a << " " << 1 - exp(-W_E_a[i] * 0.2668*pow(10, -14)) << endl;
-			a += 0.1;
+			a += 0.0001;
 		}
-		fout.close();*/
+		fout.close();
+	}
+	else
+	{
+		cout << "Choose input field's data:" << endl;
+		cout << "1 - E" << endl;
+		cout << "2 - I" << endl;
+		cout << "3 - a" << endl;
+		cin >> choose;
+		cout << "Choose polarization of a laser pulse:" << endl << "1 - linear" << endl << "2 - circular" << endl;
+		cin >> choose2;
+		cout << "Write value: ";
+		cin >> value;
+		value = pow(10, 22);
 
-		for (int i = 0;i < kol;i++)
-			for (int j = 0;j < kol;j++)
+		switch (choose)
+		{
+		case 1:
+			fil0 = value;
+			break;
+		case 2:
+			if (choose2 == 1) {
+				a0 = 8.6*pow(10, -10)*0.8*sqrt(value);// / sqrt(2); //intensy in W/cm^2 for circular polirazat
+				fil0 = E(a0); //v/m
+			}
+			else
 			{
-				if (atom[i][j].z_i < z1)
+				a0 = 8.6*pow(10, -10)*0.8*sqrt(value) / sqrt(2); //intensy in W/cm^2 for circular polirazat
+				fil0 = E(a0); //v/m
+			}
+			break;
+		case 3:
+			fil0 = E(value);
+			break;
+		}
+
+		fout.open("Ion_out_ion_ratio_dif.txt");
+		int sum17 = 0, sum18 = 0, sum19 = 0, sum20 = 0, sum21 = 0, sum22 = 0, sum23 = 0, sum24 = 0, sum25 = 0;
+		double n_e = 0.0;
+		double tau = 5.1; //tau - time interval from the start of counting
+
+		while (tau <= duration_imp)
+		{
+			//fil = fil0*abs(sin(-omega*tsu*pow(10,-15))); // plane wave
+			//fil = fil0*exp(-pow(tsu - 20, 2) / 40)); //gaus
+			fil = fil0*exp(-pow(tau - 20, 2) * 3.45 / (2 * duration_imp));
+			//fil = fil0*exp(-pow(tau - 20, 2) * 3.45 / (2 * duration_imp))*abs(cos(omega*tau));
+
+			for (int i = 0;i < kol;i++)
+				for (int j = 0;j < kol;j++)
 				{
-					for (int q = 0; q < z1;q++) // calculate ionization rate for z_i<i<z1. DON'T FORGET give current n
+					if (atom[i][j].z_i < z1)
 					{
-						atom[i][j].W_cal(A[q], B[q], fil, n(q + 1, k(data.ion_pot[q])), keld[q]); // for direct current; give function n z, which equal q+1, but this equation does't >z1!!!!!!
-						atom[i][j].W_cal_AC(A[q], B[q], fil, n(q + 1, k(data.ion_pot[q])), keld[q]); //for alternating current 
-					}					
-					atom[i][j].P();
+						for (int q = 0; q < z1;q++) // calculate ionization rate for z_i<i<z1. DON'T FORGET give current n
+						{
+							atom[i][j].W_cal(A[q], B[q], fil, n(q + 1, k(data.ion_pot[q])), keld[q]); // for direct current; give function n z, which equal q+1, but this equation does't >z1!!!!!!
+							atom[i][j].W_cal_AC(A[q], B[q], fil, n(q + 1, k(data.ion_pot[q])), keld[q]); //for alternating current 
+						}
+						atom[i][j].P();
 
-					if (atom[i][j].j != 0)
-					{
-						atom[i][j].charge += atom[i][j].j*data.charge_step; //Atom's charge will change if degree ionization doesn't equal zero (j!=0)
-						atom[i][j].j = 0;
-					};
-					atom[i][j].clear();
+						if (atom[i][j].j != 0)
+						{
+							atom[i][j].charge += atom[i][j].j*data.charge_step; //Atom's charge will change if degree ionization doesn't equal zero (j!=0)
+							atom[i][j].j = 0;
+						};
+						atom[i][j].clear();
+						n_e = (atom[i][j].charge / data.charge_step)*data.density*N_av / data.number_of_charge_states;
 
-					switch (atom[i][j].z_i)
-					{
+						switch (atom[i][j].z_i)
+						{
+						case 17: sum17++;
+							break;
+						case 18: sum18++;
+							break;
 						case 19: sum19++;
 							break;
 						case 20: sum20++;
@@ -261,35 +276,22 @@ int main()
 							break;
 						case 25: sum25++;
 							break;
+						}
 					}
-				}
-				atom[i][j].dt += 0.1*pow(10, -15); //increase time interval in code (fs)
-			};
-		fout<< sum19 << " "<< sum20 <<" " << sum21 << " " << sum22 << " " << sum23 << " " << sum24 << " " << sum25 << " " << tau << " " << endl;
-		tau += 0.1; //increase time interval in loop (step)
-		sum19 = 0; sum20 = 0; sum21 = 0; sum22 = 0; sum23 = 0; sum24 = 0; sum25 = 0;
-	}
+					//	atom[i][j].dt += 0.1*pow(10, -15); //increase time interval in code (fs)
+				};
+			fout << sum17 << " " << sum18 << " " << sum19 << " " << sum20 << " " << sum21 << " " << sum22 << " " << sum23 << " " << sum24 << " " << sum25 << " " << tau << " " << endl;
+			sum19 = 0; sum20 = 0; sum21 = 0; sum22 = 0; sum23 = 0; sum24 = 0; sum25 = 0;
 
-	fout.close();
-
-	/*ofstream fout;
-	fout.open("Ion_out_ion_ratio.txt");
-	int sum21 = 0, sum22 = 0, sum23 = 0, sum24 = 0, sum25 = 0;
-	for (int i = 0; i < kol; i++)
-	{
-		for (int j = 0; j < kol; j++)
-		{
-			ratio[i][j] = atom[i][j].charge / el;
-			if ((ratio[i][j] <= 21.1) && (ratio[i][j] > 20.9)) { sum21++; };
-			if ((ratio[i][j] <= 22.1) && (ratio[i][j] > 21.9)) { sum22++; };
-			if ((ratio[i][j] <= 23.1) && (ratio[i][j] > 22.9)) { sum23++; };
-			if ((ratio[i][j] <= 24.1) && (ratio[i][j] > 23.9)) { sum24++; };
-			if ((ratio[i][j] <= 25.1) && (ratio[i][j] > 24.9)) { sum25++; };
+			if ((tau <= 5) || (tau >= 27)) { tau += 1; } //increase time interval in loop (step)
+			else {
+				if ((tau >= 8) && (tau <= 16)) { tau += 0.1; }
+				else { tau += 0.5; };
+			}
 		}
-		
-	}
-	fout.close();*/
 
+		fout.close();
+	}
 	delete[] A, B, C; //clearing memory from dinamic massiv
 }
 
@@ -334,14 +336,3 @@ double T_norm(double lym)
 {
 	return lym / 2 * M_PI*c;
 }
-
-//ofstream fout;
-//fout.open("Ion_out_ion_E.txt");
-//double tau = 0.0;
-//while(tau<=40.0) //tau - time interval from the start of counting
-//{
-//	fil = fil0*exp(- pow(tau - 20, 2) / (2 * 40))*abs(sin(tau));
-//	fout << fil << " " << tau << " " << endl;
-//	tau += 0.01;
-//}
-//fout.close();

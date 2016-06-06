@@ -137,13 +137,13 @@ double Particle::P_max(int k_in, int p)
 
 void Particle::P() // void because j - number of new electrons and degree of ionization reside in the object. DON'T FORGET set it zero after create new particle
 {
-	//N_cal_ru();
-	N_cal_dif();
+	N_cal_ru();
+	//N_cal_dif();
 
-	double control = 0; // for check the total number of all kinds of ions, that must to equal one
+	//double control = 0; // for check the total number of all kinds of ions, that must to equal one
 
-	for (int i = 0; i < z1;i++)
-		control += N[i];
+	//for (int i = 0; i < z1;i++)
+	//	control += N[i];
 
 	double sum1 = 0, sum2 = 0;
 	int k = -1, exit = 0; // exit - for exit out loop 
@@ -151,13 +151,14 @@ void Particle::P() // void because j - number of new electrons and degree of ion
 	while (exit == 0)
 	{
 		k++;
-		if (k > z1-z_i) { exit = 1; } //condition to exit, when k=z1
+		//if (k > z1 - z_i) { exit = 1; } //condition to exit, when k=z1 for N_cal_dif, without >= because N c [0,z1+1] , N[0] - probably of not ionization 
+		if (k >= z1 - z_i) { exit = 1; } //condition to exit, when k=z1 for N_cal_ru
 		else
 		{
 			//double u = urd(gen);
 			double u = dxor128();
 			sum1 = sum2;
-			sum2 += N.at(k);
+			sum2 += N[k];
 			if ((u > sum1) && (u < sum2)) { j = k; z_i += j; exit = 1; };
 		}
 	};

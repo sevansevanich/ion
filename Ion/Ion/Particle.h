@@ -7,7 +7,7 @@
 #include <iostream>
 
 const double el = 1.60217657*pow(10, -19);
-const int kol = 50; // define target's size
+const int kol = 5; // define target's size
 const double duration_imp = 40.0; // impulse duration
 const double I_h = 13.598434005136; //ionization energy eV
 const double E_a = 0.514224*pow(10, 12); // atomic field TV/m
@@ -15,6 +15,7 @@ const double w_a = 4.134*pow(10, 16); //atomic frequency
 const double m_e = 9.10938291*pow(10, -31); //electon's mass
 const double c = 299792458.0; // m/s
 const double epsilon0 = 8.8542*pow(10,-12);
+const double N_av = 6.022140857 * pow(10, 23);
 
 class Particle
 
