@@ -7,16 +7,13 @@ double C_res(int, double);
 double B_res(double);
 double n(int, double);
 double k(double);
-double E(double);
+double E(double, double);
 double E_I(double);
 double E_norm(double, double);
 double T_norm(double);
 
-const double omega = 2 * M_PI*c / (0.8*pow(10, -6)); //circular frequency of laser beam 
-
 //number of charge states be one upper then atomic state/charge
 
-#pragma region input
 struct
 {
 	double charge = 0;
@@ -59,6 +56,7 @@ struct
 	int ion_num_of_el[7] = { 3,2,1,2,1,2,1 };
 	double ion_pot[7] = { 14.53413,29.60125,47.4453,77.4735,97.89013,552.06731,667.04609 };
 	double density = 0.808;
+	double atom_mass = 14.01;
 } data_n;
 
 struct
@@ -91,6 +89,7 @@ struct data_in
 	int *ion_n = new int[50];
 	double *ion_pot = new double[50];
 	double density;
+	double atom_mass;
 
 	//function for initialization of struct 
 	void initial_pot(int i, double value)
@@ -123,6 +122,7 @@ int main()
 	data.number_of_charge_states = data_n.number_of_charge_states;
 	data.charge_step = data_n.charge_step;
 	data.density = data_n.density;
+	data.atom_mass = data_n.atom_mass;
 	data.charge = data_n.charge;
 	for (int i = 0;i < data_n.number_of_charge_states;i++)
 	{
@@ -139,8 +139,17 @@ int main()
 	double *B = new double[z1];
 	double *C = new double[z1];
 
+	double lambda = pow(10, -6);
+	double value = 0;
+
+	cout << "Enter wavelength in micrometers for impulse: ";
+	cin >> value;
+	lambda *= value;
+
 	double fil = 0;
 	Particle atom[kol][kol]; // target
+	double omega = 2 * M_PI*c / lambda; //circular frequency of laser beam 
+
 
 	for (int i = 0;i < kol;i++) //target initialization for first ionization, n for the first electron
 		for (int j = 0;j < kol;j++)
@@ -152,7 +161,7 @@ int main()
 
 	double W[26] = {};
 	int choose = 0, choose2 = 0;
-	double fil0 = 0, value = 0, a0 = 0, keld[26] = {};
+	double fil0 = 0, a0 = 0, keld[26] = {};
 
 	for (int i = z0 + 1;i <= z1;i++)// calculation coefficients
 	{
@@ -165,7 +174,7 @@ int main()
 	cout << "Choose what are you want: " << endl << " - calculation of depedence (1);" << endl << " - start to simulation of interaction of a laser pulse with a target (2);" << endl;
 	cin >> choose; 
 
-	if (choose = 1)
+	if (choose == 1)
 	{
 		cout << "Choose charge of atom: ";
 		cin >> choose2;
@@ -177,14 +186,14 @@ int main()
 		for (int i = 0; i < 26;i++)
 		{
 			n_i[i] = n(i + 1, k(data.ion_pot[i]));
-			keld[i] = sqrt(2 * data.ion_pot[i] * m_e*1.6*pow(10, -19))*(2 * M_PI*c / (0.8*pow(10, -6))) / (el*fil); // ionization potential in Joule
+			keld[i] = sqrt(2 * data.ion_pot[i] * m_e*1.6*pow(10, -19))*(omega) / (el*fil); // ionization potential in Joule
 		}
 
 		//Calculation of dependence of the ionization of the  nirmalize amplitude electric field
 		double a = 0.001, W_E_a[100] = {};
 		for (int i = 0; i < 100; i++)
 		{
-			W_E_a[i] = A[choose2] * pow(E(a), -(2 * n(choose2, k(data.ion_pot[choose2])) - 1))*exp(-2 * B[choose2] / (3 * E(a)));
+			W_E_a[i] = A[choose2] * pow(E(a, lambda), -(2 * n(choose2, k(data.ion_pot[choose2])) - 1))*exp(-2 * B[choose2] / (3 * E(a,lambda)));
 			fout << W_E_a[i] << " " << a << " " << 1 - exp(-W_E_a[i] * 0.2668*pow(10, -14)) << endl;
 			a += 0.0001;
 		}
@@ -201,7 +210,7 @@ int main()
 		cin >> choose2;
 		cout << "Write value: ";
 		cin >> value;
-		value = pow(10, 22);
+		//value = pow(10, 22);
 
 		switch (choose)
 		{
@@ -211,30 +220,33 @@ int main()
 		case 2:
 			if (choose2 == 1) {
 				a0 = 8.6*pow(10, -10)*0.8*sqrt(value);// / sqrt(2); //intensy in W/cm^2 for circular polirazat
-				fil0 = E(a0); //v/m
+				fil0 = E(a0, lambda); //v/m
 			}
 			else
 			{
 				a0 = 8.6*pow(10, -10)*0.8*sqrt(value) / sqrt(2); //intensy in W/cm^2 for circular polirazat
-				fil0 = E(a0); //v/m
+				fil0 = E(a0, lambda); //v/m
 			}
 			break;
 		case 3:
-			fil0 = E(value);
+			fil0 = E(value, lambda);
 			break;
 		}
 
-		fout.open("Ion_out_ion_ratio_dif.txt");
-		int sum17 = 0, sum18 = 0, sum19 = 0, sum20 = 0, sum21 = 0, sum22 = 0, sum23 = 0, sum24 = 0, sum25 = 0;
+		fout.open("Ion_out_ion_ratio_dif_N.txt");
 		double n_e = 0.0;
-		double tau = 5.1; //tau - time interval from the start of counting
+		int *krat = new int[30];
+		double tau = 0; //tau - time interval from the start of counting
 
 		while (tau <= duration_imp)
 		{
 			//fil = fil0*abs(sin(-omega*tsu*pow(10,-15))); // plane wave
 			//fil = fil0*exp(-pow(tsu - 20, 2) / 40)); //gaus
-			fil = fil0*exp(-pow(tau - 20, 2) * 3.45 / (2 * duration_imp));
-			//fil = fil0*exp(-pow(tau - 20, 2) * 3.45 / (2 * duration_imp))*abs(cos(omega*tau));
+			//fil = fil0*exp(-pow(tau - 20, 2) * 3.45 / (2 * duration_imp)); //FWHM
+			fil = fil0*exp(-pow(tau - 20, 2) * 3.45 / (2 * duration_imp))*abs(cos(omega*tau)); //FWHM with fill
+
+			for (int i = 0;i < data.number_of_charge_states; i++) //clear charge states for new time step
+				krat[i] = 0;
 
 			for (int i = 0;i < kol;i++)
 				for (int j = 0;j < kol;j++)
@@ -254,44 +266,33 @@ int main()
 							atom[i][j].j = 0;
 						};
 						atom[i][j].clear();
-						n_e = (atom[i][j].charge / data.charge_step)*data.density*N_av / data.number_of_charge_states;
 
-						switch (atom[i][j].z_i)
-						{
-						case 17: sum17++;
-							break;
-						case 18: sum18++;
-							break;
-						case 19: sum19++;
-							break;
-						case 20: sum20++;
-							break;
-						case 21: sum21++;
-							break;
-						case 22: sum22++;
-							break;
-						case 23: sum23++;
-							break;
-						case 24: sum24++;
-							break;
-						case 25: sum25++;
-							break;
-						}
+						atom[i][j].dt += 0.1*pow(10, -15); //increase time interval in code (fs)
+
+						for (int c = 0; c < data.number_of_charge_states; c ++) // calculate number of ions with charge=c after one time step
+							if (c == atom[i][j].z_i) { krat[c]++; };
 					}
-					//	atom[i][j].dt += 0.1*pow(10, -15); //increase time interval in code (fs)
-				};
-			fout << sum17 << " " << sum18 << " " << sum19 << " " << sum20 << " " << sum21 << " " << sum22 << " " << sum23 << " " << sum24 << " " << sum25 << " " << tau << " " << endl;
-			sum19 = 0; sum20 = 0; sum21 = 0; sum22 = 0; sum23 = 0; sum24 = 0; sum25 = 0;
+				}
+				
+			for (int i = 0; i < data.number_of_charge_states; i++)
+				fout << krat[i] << " "; //output to file
+
+			fout << tau << endl;
 
 			if ((tau <= 5) || (tau >= 27)) { tau += 1; } //increase time interval in loop (step)
 			else {
 				if ((tau >= 8) && (tau <= 16)) { tau += 0.1; }
 				else { tau += 0.5; };
 			}
-		}
-
-		fout.close();
+			
+		};			
+		for (int i = 0; i < data.number_of_charge_states; i++) //calculate electorns density
+			n_e += i*(data.density*N_av / data.atom_mass)*((double)krat[i]/((double)kol*(double)kol));
+		fout << n_e << endl;
+		delete[] krat; //clearing memory from dinamic massiv krat
 	}
+	
+	fout.close();
 	delete[] A, B, C; //clearing memory from dinamic massiv
 }
 
@@ -300,9 +301,8 @@ double C_res(int l_in, double n)
 {
 	if (n < 1) { n = 1; }; // not sure 
 	double l = n - 1;
-	//return pow(2 * M_PI*n, (-1))*pow((2 * M_E / n), 2 * n); // for l*<<n* 
+	//return pow(2 * M_PI*n, (-1))*pow((2 * M_E / n), 2 * n); // for l*<<n*  for ADK
 	return pow(2, 2 * n) / (n*tgamma(n + l + 1)*tgamma(n - l)); //universal
-	//return pow(2 * M_PI*n, (-1))*(;//universal without gamma function
 }
 double B_res(double I)
 {
@@ -316,10 +316,9 @@ double k(double I)
 {
 	return sqrt(I / I_h);
 }
-double E(double a)
+double E(double a, double lambda)
 {
-	//return (3.2*a / 0.8 )*pow(10, 12);
-	return (a*m_e*c*c*2*M_PI)/(el*0.8*pow(10,-6)); //for wavelength 0.8 mkm
+	return (a*m_e*c*c*2*M_PI)/(el*lambda); //for wavelength 0.8 mkm
 }
 
 double E_I(double I)
@@ -327,12 +326,7 @@ double E_I(double I)
 	return sqrt(I*2*pow(10,4)/(c*epsilon0));
 }
 
-double E_norm(double E, double lym)
+double E_norm(double E, double lambda)
 {
-	return E*el*lym / (m_e*c*c*2*M_PI);
-}
-
-double T_norm(double lym)
-{
-	return lym / 2 * M_PI*c;
+	return E*el*lambda / (m_e*c*c*2*M_PI);
 }

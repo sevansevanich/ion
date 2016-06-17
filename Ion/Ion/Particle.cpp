@@ -109,7 +109,6 @@ void Particle::N_cal_dif() //see when ionizate from z_i=0 to k_max!!!!
 
 double Particle::P(int k_in, int p)  //probability for i+k degree ionization for N_cal_dif (from eq.(7)) for N_cal_dif
 {
-	//double k = k_in - 1; // for save vaector's boundary 
 	double m(0), res(1), prob_ion_k(0), prob_ion_p(0);
 	prob_ion_k = W.at(k_in + z_i);
 	prob_ion_p = W.at(p + z_i - 1);
@@ -137,8 +136,8 @@ double Particle::P_max(int k_in, int p)
 
 void Particle::P() // void because j - number of new electrons and degree of ionization reside in the object. DON'T FORGET set it zero after create new particle
 {
-	N_cal_ru();
-	//N_cal_dif();
+	//N_cal_ru();
+	N_cal_dif();
 
 	//double control = 0; // for check the total number of all kinds of ions, that must to equal one
 
@@ -155,7 +154,6 @@ void Particle::P() // void because j - number of new electrons and degree of ion
 		if (k >= z1 - z_i) { exit = 1; } //condition to exit, when k=z1 for N_cal_ru
 		else
 		{
-			//double u = urd(gen);
 			double u = dxor128();
 			sum1 = sum2;
 			sum2 += N[k];
