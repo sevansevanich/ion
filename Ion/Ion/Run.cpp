@@ -1,7 +1,8 @@
-#include "Particle.h"
+#include "Data.h"
 #include <random> // for GSCH
 #include <ctime> // fo GSCH
 #include <fstream>
+#include <string>
 
 double C_res(int, double);
 double B_res(double);
@@ -12,75 +13,7 @@ double E_I(double);
 double E_norm(double, double);
 double T_norm(double);
 
-//number of charge states be one upper then atomic state/charge
-
-struct
-{
-	double charge = 0;
-	double charge_step = el;
-	int number_of_charge_states = 2;
-	int ion_l[1] = { 0 };
-	int ion_n[1] = { 1 };
-	int ion_num_of_el[1] = { 1 };
-	double ion_pot[1] = { 13.598434005136 };
-} data_h;
-
-struct 
-{
-	double charge = 0;
-	double charge_step = el;
-	int number_of_charge_states = 3;
-	int ion_l[2] = { 0,0 };
-	int ion_num_of_el[2] = { 2,1 };
-	double ion_pot[2] = { 24.587387936,54.41776311 };
-} data_he;
-
-struct
-{
-	double charge = 0;
-	double charge_step = el;
-	int number_of_charge_states = 7;
-	int ion_l[6] = { 1,1,0,0,0,0 };
-	int ion_n[6] = { 2,2,2,2,1,1 };
-	int ion_num_of_el[6] = { 2,1,2,1,2,1 };
-	double ion_pot[6] = { 11.26,24.38,47.88,64.49,392.09,489.99 };
-} data_c;
-
-struct
-{
-	double charge = 0;
-	double charge_step = el;
-	int number_of_charge_states = 8;
-	int ion_l[7] = { 1,1,1,0,0,0,0 };
-	int ion_n[7] = { 2,2,2,2,2,1,1 };
-	int ion_num_of_el[7] = { 3,2,1,2,1,2,1 };
-	double ion_pot[7] = { 14.53413,29.60125,47.4453,77.4735,97.89013,552.06731,667.04609 };
-	double density = 0.808;
-	double atom_mass = 14.01;
-} data_n;
-
-struct
-{
-	double charge = 0;
-	double charge_step = el;
-	int number_of_charge_states = 27;
-	int ion_l[26] = { 0,0,2,2,2,2,2,2,1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,0,0,0};
-	int ion_n[26] = { 4, 4, 3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,2,2,2,2,2,1,1};
-	double ion_pot[26] = { 7.9024678, 16.19920, 30.651, 54.91, 75.0, 98.985, 124.98, 151.060, 233.6, 262.10, 290.9, 330.8, 361.0, 392.2, 456.2, 489.312, 1262.7, 1357.8, 1460, 1575.6, 1687.0, 1798.4, 1950.4, 2045.759, 8828.1875, 9277.6814};
-	double density = 7.874;
-} data_fe;
-
-struct
-{
-	double charge = 0;
-	double charge_step = el;
-	int number_of_charge_states = 14;
-	int ion_l[13] = { 1,0,0,1,1,1,1,1,1,0,0,0,0 };
-	int ion_n[13] = { 3,2,2,2,2,2,2,2,2,2,2,1,1 };
-	double ion_pot[13] = { 5.985768, 18.82855, 28.44764, 119.9924, 153.825, 190.49, 241.76, 284.64, 330.21, 398.65, 442.005, 2085.97963, 2304.14 };
-} data_al;
-
-struct data_in
+struct data_universal
 {
 	double charge;
 	double charge_step;
@@ -96,11 +29,11 @@ struct data_in
 	{
 		ion_pot[i] = value;
 	}
-	void initial_l(int i, double value)
+	void initial_l(int i, int value)
 	{
 		ion_l[i] = value;
 	}
-	void initial_n(int i, double value)
+	void initial_n(int i, int value)
 	{
 		ion_n[i] = value;
 	}
@@ -110,30 +43,32 @@ struct data_in
 	}
 };
 
-#pragma end_region
-
 using namespace std;
 
 int main()
 {
-	data_in data;
+	data_universal data;
 	ofstream fout;
+	string material;
 
-	data.number_of_charge_states = data_n.number_of_charge_states;
-	data.charge_step = data_n.charge_step;
-	data.density = data_n.density;
-	data.atom_mass = data_n.atom_mass;
-	data.charge = data_n.charge;
-	for (int i = 0;i < data_n.number_of_charge_states;i++)
+	cout << "Write material: ";
+	cin >> material;
+
+	data.number_of_charge_states = data_ag.number_of_charge_states;
+	data.charge_step = data_ag.charge_step;
+	data.density = data_ag.density;
+	data.atom_mass = data_ag.atom_mass;
+	data.charge = data_ag.charge;
+	for (int i = 0;i < data_ag.number_of_charge_states;i++)
 	{
-		data.initial_pot(i, data_n.ion_pot[i]);
-		data.initial_l(i, data_n.ion_l[i]);
+		data.initial_pot(i, data_ag.ion_pot[i]);
+		data.initial_l(i, data_ag.ion_l[i]);
 	}
 
 	int z0 = 0, z1 = 0;
 
-	z0 = data.charge / data.charge_step; // 
-	z1 = z0 + data.number_of_charge_states - 1; //
+	z0 = int (data.charge / data.charge_step); // charge state of film for initialization and tabulate coefficients
+	z1 = z0 + data.number_of_charge_states - 1; //!!!!!!!!!!!!!!!!!!! max charge for ionizatioin ????????????????????????????
 
 	double *A = new double[z1];
 	double *B = new double[z1];
@@ -180,7 +115,8 @@ int main()
 		cin >> choose2;
 
 		fout.open("Ion_out_ion.txt");
-		double n_i[26] = {};
+		double *n_i= new double[z1];
+		double *W_E_a = new double[z1];
 		
 		//Calculation of parameter Keldisha
 		for (int i = 0; i < 26;i++)
@@ -190,13 +126,15 @@ int main()
 		}
 
 		//Calculation of dependence of the ionization of the  nirmalize amplitude electric field
-		double a = 0.001, W_E_a[100] = {};
+		double a = 0.001;
 		for (int i = 0; i < 100; i++)
 		{
 			W_E_a[i] = A[choose2] * pow(E(a, lambda), -(2 * n(choose2, k(data.ion_pot[choose2])) - 1))*exp(-2 * B[choose2] / (3 * E(a,lambda)));
 			fout << W_E_a[i] << " " << a << " " << 1 - exp(-W_E_a[i] * 0.2668*pow(10, -14)) << endl;
 			a += 0.0001;
 		}
+
+		delete[] n_i, W_E_a;
 		fout.close();
 	}
 	else
@@ -210,7 +148,6 @@ int main()
 		cin >> choose2;
 		cout << "Write value: ";
 		cin >> value;
-		//value = pow(10, 22);
 
 		switch (choose)
 		{
@@ -233,9 +170,12 @@ int main()
 			break;
 		}
 
-		fout.open("Ion_out_ion_ratio_dif_N.txt");
-		double n_e = 0.0;
-		int *krat = new int[30];
+		string file_output;
+		file_output = "Ion_out_ion_ratio_" + material + ".txt";
+		fout.open(file_output);
+
+		double n_e = 0.0; //electrons density
+		int *krat = new int[z1+1]; //only for output in file
 		double tau = 0; //tau - time interval from the start of counting
 
 		while (tau <= duration_imp)
@@ -245,7 +185,7 @@ int main()
 			//fil = fil0*exp(-pow(tau - 20, 2) * 3.45 / (2 * duration_imp)); //FWHM
 			fil = fil0*exp(-pow(tau - 20, 2) * 3.45 / (2 * duration_imp))*abs(cos(omega*tau)); //FWHM with fill
 
-			for (int i = 0;i < data.number_of_charge_states; i++) //clear charge states for new time step
+			for (int i = 0;i < data.number_of_charge_states; i++) // for output - clear charge states for new time step (charge must be equl to zero in start of time step)
 				krat[i] = 0;
 
 			for (int i = 0;i < kol;i++)
@@ -277,7 +217,7 @@ int main()
 			for (int i = 0; i < data.number_of_charge_states; i++)
 				fout << krat[i] << " "; //output to file
 
-			fout << tau << endl;
+			fout << tau << fil <<endl;
 
 			if ((tau <= 5) || (tau >= 27)) { tau += 1; } //increase time interval in loop (step)
 			else {

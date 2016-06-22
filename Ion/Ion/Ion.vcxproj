@@ -146,6 +146,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Data.h" />
     <ClCompile Include="Particle.cpp" />
     <ClCompile Include="Run.cpp" />
   </ItemGroup>
